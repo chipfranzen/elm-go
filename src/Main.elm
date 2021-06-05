@@ -7,8 +7,10 @@
 
 module Main exposing (..)
 
+import BoardSize exposing (BoardSize)
+import GoBan exposing (draw, newBoard)
+
 import Browser
-import GoBan exposing (BoardSize, draw, newBoard)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 
@@ -31,7 +33,7 @@ type alias Model =
 
 init : Model
 init =
-    GoBan.Nineteen
+    BoardSize.Nineteen
 
 
 
@@ -58,8 +60,9 @@ view model =
             newBoard model 500 50
     in
     div []
-        [ div [] [ draw goBan "600" ]
-        , button [ onClick GoBan.Nineteen ] [ text "19x19" ]
-        , button [ onClick GoBan.Thirteen ] [ text "13x13" ]
-        , button [ onClick GoBan.Nine ] [ text "9x9" ]
+        [ div []
+        [ draw goBan "600" ]
+        , button [ onClick BoardSize.Nineteen ] [ text "19x19" ]
+        , button [ onClick BoardSize.Thirteen ] [ text "13x13" ]
+        , button [ onClick BoardSize.Nine ] [ text "9x9" ]
         ]

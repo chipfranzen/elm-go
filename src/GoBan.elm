@@ -1,5 +1,9 @@
 module GoBan exposing (..)
 
+import BoardSize exposing (BoardSize)
+import Coordinate exposing (Coordinate)
+import Stone exposing (Stone)
+
 import Html exposing (Html)
 import List exposing (map, range)
 import String
@@ -22,7 +26,7 @@ newBoard : BoardSize -> Int -> Int -> GoBan
 newBoard boardSize width viewboxBuffer =
     let
         boardSizeInt =
-            toInt boardSize
+            BoardSize.toInt boardSize
 
         gridBuffer =
             (width - 50) // boardSizeInt
@@ -42,34 +46,11 @@ newBoard boardSize width viewboxBuffer =
     }
 
 
-type BoardSize
-    = Nine
-    | Thirteen
-    | Nineteen
-
-
-toInt : BoardSize -> Int
-toInt boardSize =
-    case boardSize of
-        Nine ->
-            9
-
-        Thirteen ->
-            13
-
-        Nineteen ->
-            19
-
-
-type alias Coordinate =
-    ( Int, Int )
-
-
 draw : GoBan -> String -> Html msg
 draw goBan viewBoxSize =
     let
         boardSize =
-            toInt goBan.size
+            BoardSize.toInt goBan.size
 
         rows =
             range 0 (boardSize - 1)
@@ -83,6 +64,7 @@ draw goBan viewBoxSize =
             ++ List.map (drawHorizontal goBan) rows
             ++ List.map (drawVertical goBan) rows
             ++ drawStarPoints goBan
+            ++ [ drawStone 0.75 goBan Stone.White (100, 100) ]
         )
 
 
@@ -161,7 +143,7 @@ starPoints19 =
         start =
             ( 3, 3 )
     in
-    List.map (coordTranslate start space) coords
+    List.map (Coordinate.translate start space) coords
 
 
 starPoints13 : List Coordinate
@@ -204,13 +186,13 @@ drawStarPoint goBan gridCoord =
 drawStarPoints : GoBan -> List (Html msg)
 drawStarPoints goBan =
     case goBan.size of
-        Nineteen ->
+        BoardSize.Nineteen ->
             List.map (drawStarPoint goBan) starPoints19
 
-        Thirteen ->
+        BoardSize.Thirteen ->
             List.map (drawStarPoint goBan) starPoints13
 
-        Nine ->
+        BoardSize.Nine ->
             List.map (drawStarPoint goBan) starPoints9
 
 
@@ -233,19 +215,42 @@ gridCoordToPixel goBan gridCoord =
     ( px, py )
 
 
-coordMul : Coordinate -> Int -> Coordinate
-coordMul coord n =
-    ( n * first coord, n * second coord )
+onGoBan : GoBan -> Coordinate -> Bool
+onGoBan goBan pixel =
+  let
+    ( px, py ) = pixel
 
+    pMin = goBan.viewboxBuffer
+    pMax = pMin + goBan.width
+  in
+    (pMin <= px)
+    && (px <= pMax)
+    && (pMin <= py)
+    && (py <= pMax)
 
-coordAdd : Coordinate -> Coordinate -> Coordinate
-coordAdd coord1 coord2 =
-    ( first coord1 + first coord2
-    , second coord1 + second coord2
-    )
+drawStone : Float -> GoBan -> Stone -> Coordinate -> Html msg
+drawStone alpha goBan stone pixel =
+  let
+      radius =
+        String.fromInt (round (goBan.gridRes / 2))
 
+      x = String.fromInt (first pixel)
+      y = String.fromInt (second pixel)
 
-coordTranslate : Coordinate -> Int -> Coordinate -> Coordinate
-coordTranslate locCoord scale inCoord =
-    coordMul inCoord scale
-        |> coordAdd locCoord
+      onBoard = onGoBan goBan pixel
+
+  in
+    case onBoard of
+      False ->
+        svg [] []
+      True ->
+        circle
+          [ cx x
+          , cy y
+          , r radius
+          , opacity (String.fromFloat alpha)
+          , fill (Stone.toString stone)
+          , stroke "black"
+          , strokeWidth "1.2"
+          ]
+          []
