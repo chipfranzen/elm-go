@@ -46,8 +46,8 @@ newBoard boardSize width viewboxBuffer =
     }
 
 
-draw : GoBan -> String -> Html msg
-draw goBan viewBoxSize =
+draw : GoBan -> List (Svg msg)
+draw goBan =
     let
         boardSize =
             BoardSize.toInt goBan.size
@@ -55,17 +55,11 @@ draw goBan viewBoxSize =
         rows =
             range 0 (boardSize - 1)
     in
-    svg
-        [ viewBox (String.join " " [ "0", "0", viewBoxSize, viewBoxSize ])
-        , width viewBoxSize
-        , height viewBoxSize
-        ]
-        ([ drawBoard goBan ]
+        [ drawBoard goBan ]
             ++ List.map (drawHorizontal goBan) rows
             ++ List.map (drawVertical goBan) rows
             ++ drawStarPoints goBan
-            ++ [ drawStone 0.75 goBan Stone.White (100, 100) ]
-        )
+
 
 
 drawBoard : GoBan -> Html msg
