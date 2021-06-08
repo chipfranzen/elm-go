@@ -2,8 +2,10 @@ module Coordinate exposing (..)
 
 import Tuple exposing (first, second)
 
+
 type alias Coordinate =
     ( Int, Int )
+
 
 mul : Coordinate -> Int -> Coordinate
 mul coord n =

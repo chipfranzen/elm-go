@@ -2,10 +2,9 @@ module GoBan exposing (..)
 
 import BoardSize exposing (BoardSize)
 import Coordinate exposing (Coordinate)
-import Stone exposing (Stone)
-
 import Html exposing (Html)
 import List exposing (map, range)
+import Stone exposing (Stone)
 import String
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -55,11 +54,10 @@ draw goBan =
         rows =
             range 0 (boardSize - 1)
     in
-        [ drawBoard goBan ]
-            ++ List.map (drawHorizontal goBan) rows
-            ++ List.map (drawVertical goBan) rows
-            ++ drawStarPoints goBan
-
+    [ drawBoard goBan ]
+        ++ List.map (drawHorizontal goBan) rows
+        ++ List.map (drawVertical goBan) rows
+        ++ drawStarPoints goBan
 
 
 drawBoard : GoBan -> Html msg
@@ -179,15 +177,19 @@ drawStarPoint goBan gridCoord =
 
 drawStarPoints : GoBan -> List (Html msg)
 drawStarPoints goBan =
+    let
+        mapFunc =
+            List.map (drawStarPoint goBan)
+    in
     case goBan.size of
         BoardSize.Nineteen ->
-            List.map (drawStarPoint goBan) starPoints19
+            mapFunc starPoints19
 
         BoardSize.Thirteen ->
-            List.map (drawStarPoint goBan) starPoints13
+            mapFunc starPoints13
 
         BoardSize.Nine ->
-            List.map (drawStarPoint goBan) starPoints9
+            mapFunc starPoints9
 
 
 gridCoordToPixel : GoBan -> Coordinate -> Coordinate
@@ -211,40 +213,49 @@ gridCoordToPixel goBan gridCoord =
 
 onGoBan : GoBan -> Coordinate -> Bool
 onGoBan goBan pixel =
-  let
-    ( px, py ) = pixel
+    let
+        ( px, py ) =
+            pixel
 
-    pMin = goBan.viewboxBuffer
-    pMax = pMin + goBan.width
-  in
+        pMin =
+            goBan.viewboxBuffer
+
+        pMax =
+            pMin + goBan.width
+    in
     (pMin <= px)
-    && (px <= pMax)
-    && (pMin <= py)
-    && (py <= pMax)
+        && (px <= pMax)
+        && (pMin <= py)
+        && (py <= pMax)
 
-drawStone : Float -> GoBan -> Stone -> Coordinate -> Html msg
-drawStone alpha goBan stone pixel =
-  let
-      radius =
-        String.fromInt (round (goBan.gridRes / 2))
 
-      x = String.fromInt (first pixel)
-      y = String.fromInt (second pixel)
+drawStone : Float -> GoBan -> ( Stone, Coordinate ) -> Html msg
+drawStone alpha goBan ( stone, pixel ) =
+    let
+        radius =
+            String.fromInt (round (goBan.gridRes / 2))
 
-      onBoard = onGoBan goBan pixel
+        x =
+            String.fromInt (first pixel)
 
-  in
+        y =
+            String.fromInt (second pixel)
+
+        onBoard =
+            onGoBan goBan pixel
+    in
     case onBoard of
-      False ->
-        svg [] []
-      True ->
-        circle
-          [ cx x
-          , cy y
-          , r radius
-          , opacity (String.fromFloat alpha)
-          , fill (Stone.toString stone)
-          , stroke "black"
-          , strokeWidth "1.2"
-          ]
-          []
+        False ->
+            svg [] []
+
+        True ->
+            circle
+                [ cx x
+                , cy y
+                , r radius
+                , opacity (String.fromFloat alpha)
+                , fill (Stone.toString stone)
+                , stroke "black"
+                , strokeWidth "1.2"
+                ]
+                []
