@@ -229,8 +229,8 @@ onGoBan goBan pixel =
         && (py <= pMax)
 
 
-drawStone : Float -> GoBan -> Stone -> Coordinate -> Html msg
-drawStone alpha goBan stone pixel =
+drawStone : Float -> GoBan -> ( Stone, Coordinate ) -> Html msg
+drawStone alpha goBan ( stone, pixel ) =
     let
         radius =
             String.fromInt (round (goBan.gridRes / 2))

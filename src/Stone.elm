@@ -16,3 +16,13 @@ toString stone =
 
         White ->
             "white"
+
+
+next : Stone -> Stone
+next stone =
+    case stone of
+        Black ->
+            White
+
+        White ->
+            Black
