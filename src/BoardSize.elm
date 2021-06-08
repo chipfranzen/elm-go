@@ -1,5 +1,6 @@
 module BoardSize exposing (..)
 
+
 type BoardSize
     = Nine
     | Thirteen
