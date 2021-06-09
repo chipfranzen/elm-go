@@ -1,9 +1,11 @@
 module GoBan exposing (..)
 
 import BoardSize exposing (BoardSize)
-import Coordinate exposing (Coordinate)
+import Coordinate exposing (Coordinate, nearestCoord)
+import Dict exposing (Dict)
 import Html exposing (Html)
-import List exposing (map, range)
+import List exposing (range)
+import Set exposing (Set)
 import Stone exposing (Stone)
 import String
 import Svg exposing (..)
@@ -12,7 +14,7 @@ import Tuple exposing (first, second)
 
 
 type alias GoBan =
-    { size : BoardSize
+    { boardSize : BoardSize
     , width : Int
     , viewboxBuffer : Int
     , gridBuffer : Int
@@ -36,7 +38,7 @@ newBoard boardSize width viewboxBuffer =
         gridRes =
             toFloat gridSize / (toFloat boardSizeInt - 1)
     in
-    { size = boardSize
+    { boardSize = boardSize
     , width = width
     , viewboxBuffer = viewboxBuffer
     , gridBuffer = gridBuffer
@@ -49,7 +51,7 @@ draw : GoBan -> List (Svg msg)
 draw goBan =
     let
         boardSize =
-            BoardSize.toInt goBan.size
+            BoardSize.toInt goBan.boardSize
 
         rows =
             range 0 (boardSize - 1)
@@ -181,7 +183,7 @@ drawStarPoints goBan =
         mapFunc =
             List.map (drawStarPoint goBan)
     in
-    case goBan.size of
+    case goBan.boardSize of
         BoardSize.Nineteen ->
             mapFunc starPoints19
 
@@ -211,6 +213,60 @@ gridCoordToPixel goBan gridCoord =
     ( px, py )
 
 
+gridCoords : GoBan -> List Coordinate
+gridCoords goBan =
+    let
+        boardSize =
+            BoardSize.toInt goBan.boardSize
+
+        rows =
+            range 0 (boardSize - 1)
+    in
+    List.concatMap (\f -> List.map f rows) (List.map Tuple.pair rows)
+
+
+gridCoordPixels : GoBan -> Dict Coordinate Coordinate
+gridCoordPixels goBan =
+    let
+        coords =
+            gridCoords goBan
+
+        mapFunc coord =
+            Tuple.pair coord (gridCoordToPixel goBan coord)
+    in
+    Dict.fromList (List.map mapFunc coords)
+
+
+pixelGridCoords : GoBan -> Dict Coordinate Coordinate
+pixelGridCoords goBan =
+    let
+        coords =
+            gridCoords goBan
+    in
+    Dict.fromList
+        (List.map (\x -> Tuple.pair (gridCoordToPixel goBan x) x) coords)
+
+
+pixelToGridCoord : GoBan -> Coordinate -> Coordinate
+pixelToGridCoord goBan pixel =
+    let
+        pixelGridCoordDict =
+            pixelGridCoords goBan
+
+        pixels =
+            Dict.keys pixelGridCoordDict
+
+        outPixel =
+            nearestCoord pixels pixel
+    in
+    case Dict.get outPixel pixelGridCoordDict of
+        Just coord ->
+            coord
+
+        Nothing ->
+            ( 0, 0 )
+
+
 onGoBan : GoBan -> Coordinate -> Bool
 onGoBan goBan pixel =
     let
@@ -230,10 +286,13 @@ onGoBan goBan pixel =
 
 
 drawStone : Float -> GoBan -> ( Stone, Coordinate ) -> Html msg
-drawStone alpha goBan ( stone, pixel ) =
+drawStone alpha goBan ( stone, gridCoord ) =
     let
+        pixel =
+            gridCoordToPixel goBan gridCoord
+
         radius =
-            String.fromInt (round (goBan.gridRes / 2))
+            String.fromInt (round (goBan.gridRes / 2.2))
 
         x =
             String.fromInt (first pixel)

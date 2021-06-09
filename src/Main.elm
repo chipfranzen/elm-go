@@ -4,7 +4,7 @@ import BoardSize exposing (BoardSize)
 import Browser
 import Browser.Events as E
 import Coordinate exposing (Coordinate)
-import GoBan exposing (draw, drawStone, newBoard)
+import GoBan exposing (GoBan, draw, drawStone, newBoard, pixelToGridCoord)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Json.Decode as D
@@ -12,6 +12,25 @@ import Stone exposing (Stone)
 import String
 import Svg exposing (svg)
 import Svg.Attributes exposing (height, viewBox, width)
+
+
+
+-- CONSTANTS
+
+
+viewBoxSize : String
+viewBoxSize =
+    "600"
+
+
+goBanWidth : Int
+goBanWidth =
+    500
+
+
+viewBoxBuffer : Int
+viewBoxBuffer =
+    50
 
 
 
@@ -32,10 +51,10 @@ main =
 
 
 type alias Model =
-    { boardSize : BoardSize
-    , mousePos : Coordinate
+    { goBan : GoBan
     , stones : List ( Stone, Coordinate )
     , turn : Stone
+    , mousePos : Coordinate
     }
 
 
@@ -47,10 +66,10 @@ type alias MousePos =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { boardSize = BoardSize.Nineteen
-      , mousePos = ( 0, 0 )
+    ( { goBan = newBoard BoardSize.Nineteen goBanWidth viewBoxBuffer
       , stones = []
       , turn = Stone.Black
+      , mousePos = ( 0, 0 )
       }
     , Cmd.none
     )
@@ -70,14 +89,19 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangeBoard boardSize ->
-            ( { model | boardSize = boardSize, stones = [] }, Cmd.none )
+            ( { model
+                | goBan = newBoard boardSize goBanWidth viewBoxBuffer
+                , stones = []
+              }
+            , Cmd.none
+            )
 
         MouseMove pos ->
             ( { model | mousePos = ( pos.x, pos.y ) }, Cmd.none )
 
         PlaceStone pos ->
             ( { model
-                | stones = ( model.turn, ( pos.x, pos.y ) ) :: model.stones
+                | stones = ( model.turn, pixelToGridCoord model.goBan ( pos.x, pos.y ) ) :: model.stones
                 , turn = Stone.next model.turn
               }
             , Cmd.none
@@ -88,17 +112,8 @@ update msg model =
 -- VIEW
 
 
-viewBoxSize : String
-viewBoxSize =
-    "600"
-
-
 view : Model -> Html Msg
 view model =
-    let
-        goBan =
-            newBoard model.boardSize 500 50
-    in
     div []
         [ div []
             [ svg
@@ -106,9 +121,9 @@ view model =
                 , width viewBoxSize
                 , height viewBoxSize
                 ]
-                (draw goBan
-                    ++ [ drawStone 0.75 goBan ( model.turn, model.mousePos ) ]
-                    ++ List.map (drawStone 1.0 goBan) model.stones
+                (draw model.goBan
+                    ++ List.map (drawStone 1.0 model.goBan) model.stones
+                    ++ [ drawStone 0.75 model.goBan ( model.turn, pixelToGridCoord model.goBan model.mousePos ) ]
                 )
             , button [ onClick (ChangeBoard BoardSize.Nineteen) ] [ text "19x19" ]
             , button [ onClick (ChangeBoard BoardSize.Thirteen) ] [ text "13x13" ]
