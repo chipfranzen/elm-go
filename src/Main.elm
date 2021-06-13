@@ -4,13 +4,13 @@ import BoardSize exposing (BoardSize)
 import Browser
 import Browser.Events as E
 import Coordinate exposing (Coordinate)
-import GoBan exposing (GoBan, draw, drawStone, newBoard, pixelToGridCoord)
+import GoBan exposing (GoBan, draw, drawStone, newBoard, onGoBan, pixelToGridCoord)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Json.Decode as D
 import Stone exposing (Stone)
 import String
-import Svg exposing (svg)
+import Svg exposing (Svg, svg)
 import Svg.Attributes exposing (height, viewBox, width)
 
 
@@ -100,12 +100,7 @@ update msg model =
             ( { model | mousePos = ( pos.x, pos.y ) }, Cmd.none )
 
         PlaceStone pos ->
-            ( { model
-                | stones = ( model.turn, pixelToGridCoord model.goBan ( pos.x, pos.y ) ) :: model.stones
-                , turn = Stone.next model.turn
-              }
-            , Cmd.none
-            )
+            placeStone model pos
 
 
 
@@ -123,7 +118,7 @@ view model =
                 ]
                 (draw model.goBan
                     ++ List.map (drawStone 1.0 model.goBan) model.stones
-                    ++ [ drawStone 0.75 model.goBan ( model.turn, pixelToGridCoord model.goBan model.mousePos ) ]
+                    ++ drawGhostStone model
                 )
             , button [ onClick (ChangeBoard BoardSize.Nineteen) ] [ text "19x19" ]
             , button [ onClick (ChangeBoard BoardSize.Thirteen) ] [ text "13x13" ]
@@ -145,3 +140,39 @@ decodePos =
     D.map2 MousePos
         (D.field "pageX" D.int)
         (D.field "pageY" D.int)
+
+
+placeStone : Model -> MousePos -> ( Model, Cmd Msg )
+placeStone model pos =
+    let
+        mouseCoord =
+            ( pos.x, pos.y )
+
+        onBan =
+            onGoBan model.goBan mouseCoord
+    in
+    case onBan of
+        True ->
+            ( { model
+                | stones = ( model.turn, pixelToGridCoord model.goBan ( pos.x, pos.y ) ) :: model.stones
+                , turn = Stone.next model.turn
+              }
+            , Cmd.none
+            )
+
+        False ->
+            ( model, Cmd.none )
+
+
+drawGhostStone : Model -> List (Svg msg)
+drawGhostStone model =
+    let
+        onBan =
+            onGoBan model.goBan model.mousePos
+    in
+    case onBan of
+        True ->
+            [ drawStone 0.75 model.goBan ( model.turn, pixelToGridCoord model.goBan model.mousePos ) ]
+
+        False ->
+            []
