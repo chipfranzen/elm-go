@@ -8,10 +8,12 @@ import GoBan exposing (GoBan, draw, drawStone, newBoard, onGoBan, pixelToGridCoo
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Json.Decode as D
+import MousePos exposing (MousePos)
 import Stone exposing (Stone)
 import String
 import Svg exposing (Svg, svg)
 import Svg.Attributes exposing (height, viewBox, width)
+import Tuple
 
 
 
@@ -20,12 +22,12 @@ import Svg.Attributes exposing (height, viewBox, width)
 
 viewBoxSize : String
 viewBoxSize =
-    "600"
+    "900"
 
 
 goBanWidth : Int
 goBanWidth =
-    500
+    800
 
 
 viewBoxBuffer : Int
@@ -55,12 +57,7 @@ type alias Model =
     , stones : List ( Stone, Coordinate )
     , turn : Stone
     , mousePos : Coordinate
-    }
-
-
-type alias MousePos =
-    { x : Int
-    , y : Int
+    , error : String
     }
 
 
@@ -70,6 +67,7 @@ init _ =
       , stones = []
       , turn = Stone.Black
       , mousePos = ( 0, 0 )
+      , error = ""
       }
     , Cmd.none
     )
@@ -82,7 +80,7 @@ init _ =
 type Msg
     = ChangeBoard BoardSize
     | MouseMove MousePos
-    | PlaceStone MousePos
+    | BoardClick MousePos
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,6 +90,7 @@ update msg model =
             ( { model
                 | goBan = newBoard boardSize goBanWidth viewBoxBuffer
                 , stones = []
+                , error = ""
               }
             , Cmd.none
             )
@@ -99,8 +98,8 @@ update msg model =
         MouseMove pos ->
             ( { model | mousePos = ( pos.x, pos.y ) }, Cmd.none )
 
-        PlaceStone pos ->
-            placeStone model pos
+        BoardClick pos ->
+            boardClick model pos
 
 
 
@@ -120,6 +119,7 @@ view model =
                     ++ List.map (drawStone 1.0 model.goBan) model.stones
                     ++ drawGhostStone model
                 )
+            , text model.error
             , button [ onClick (ChangeBoard BoardSize.Nineteen) ] [ text "19x19" ]
             , button [ onClick (ChangeBoard BoardSize.Thirteen) ] [ text "13x13" ]
             , button [ onClick (ChangeBoard BoardSize.Nine) ] [ text "9x9" ]
@@ -130,38 +130,77 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ E.onMouseMove (D.map MouseMove decodePos)
-        , E.onClick (D.map PlaceStone decodePos)
+        [ E.onMouseMove (D.map MouseMove MousePos.decodePos)
+        , E.onClick (D.map BoardClick MousePos.decodePos)
         ]
 
 
-decodePos : D.Decoder MousePos
-decodePos =
-    D.map2 MousePos
-        (D.field "pageX" D.int)
-        (D.field "pageY" D.int)
-
-
-placeStone : Model -> MousePos -> ( Model, Cmd Msg )
-placeStone model pos =
+boardClick : Model -> MousePos -> ( Model, Cmd Msg )
+boardClick model pos =
     let
         mouseCoord =
             ( pos.x, pos.y )
+
+        stoneCoord =
+            pixelToGridCoord model.goBan mouseCoord
 
         onBan =
             onGoBan model.goBan mouseCoord
     in
     case onBan of
         True ->
+            placeStone model stoneCoord
+
+        False ->
+            ( model, Cmd.none )
+
+
+placeStone : Model -> Coordinate -> ( Model, Cmd Msg )
+placeStone model stoneCoord =
+    let
+        legalMove =
+            isLegal model stoneCoord
+    in
+    case legalMove of
+        Legal ->
             ( { model
-                | stones = ( model.turn, pixelToGridCoord model.goBan ( pos.x, pos.y ) ) :: model.stones
+                | stones = ( model.turn, stoneCoord ) :: model.stones
                 , turn = Stone.next model.turn
+                , error = ""
               }
             , Cmd.none
             )
 
+        Illegal error ->
+            ( { model | error = error }, Cmd.none )
+
+
+isLegal : Model -> Coordinate -> MoveCheck
+isLegal model stoneCoord =
+    let
+        vacantCoord =
+            isVacant model.stones stoneCoord
+    in
+    case vacantCoord of
+        True ->
+            Legal
+
         False ->
-            ( model, Cmd.none )
+            Illegal "Coordinate occupied! Play somewhere else."
+
+
+isVacant : List ( Stone.Stone, Coordinate ) -> Coordinate -> Bool
+isVacant stones checkCoord =
+    let
+        sameStone stone =
+            Tuple.second stone == checkCoord
+    in
+    not (List.any sameStone stones)
+
+
+type MoveCheck
+    = Legal
+    | Illegal String
 
 
 drawGhostStone : Model -> List (Svg msg)
