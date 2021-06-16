@@ -10,6 +10,7 @@ import Html.Events exposing (onClick)
 import Json.Decode as D
 import MousePos exposing (MousePos)
 import Stone exposing (Stone)
+import StoneGroup
 import String
 import Svg exposing (Svg, svg)
 import Svg.Attributes exposing (height, viewBox, width)
