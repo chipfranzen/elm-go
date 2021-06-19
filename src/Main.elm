@@ -170,27 +170,32 @@ placeStone model stoneCoord =
     in
     case legalMove of
         Legal ->
-          updateStones model stoneCoord
+            updateStones model stoneCoord
 
         Illegal error ->
             ( { model | error = error }, Cmd.none )
 
-updateStones : Model -> Coordinate -> (Model, Cmd Msg)
-updateStones model stoneCoord =
-  let
-      stoneGroups = StoneGroup.updateGroups model.stoneGroups model.turn stoneCoord
-      liveGroups = StoneGroup.killGroups stoneGroups
-      stones = StoneGroup.toDict liveGroups
-  in
-      ( { model
-          | stones = stones
-          , stoneGroups = liveGroups
-          , turn = Stone.next model.turn
-          , error = ""
-        }
-      , Cmd.none
-      )
 
+updateStones : Model -> Coordinate -> ( Model, Cmd Msg )
+updateStones model stoneCoord =
+    let
+        stoneGroups =
+            StoneGroup.updateGroups model.stoneGroups model.turn stoneCoord
+
+        liveGroups =
+            StoneGroup.killGroups stoneGroups
+
+        stones =
+            StoneGroup.toDict liveGroups
+    in
+    ( { model
+        | stones = stones
+        , stoneGroups = liveGroups
+        , turn = Stone.next model.turn
+        , error = ""
+      }
+    , Cmd.none
+    )
 
 
 isLegal : Model -> Coordinate -> MoveCheck

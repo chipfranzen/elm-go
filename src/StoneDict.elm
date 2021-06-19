@@ -4,14 +4,16 @@ import Coordinate exposing (Coordinate)
 import Dict exposing (Dict)
 import Stone exposing (Stone)
 
+
 type alias StoneDict =
-  Dict Coordinate Stone
+    Dict Coordinate Stone
 
 
 isVacant : StoneDict -> Coordinate -> Bool
 isVacant boardState location =
     case Dict.get location boardState of
-      Nothing ->
-        True
-      Just stonecolor ->
-        False
+        Nothing ->
+            True
+
+        Just stonecolor ->
+            False

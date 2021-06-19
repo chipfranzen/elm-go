@@ -25,25 +25,26 @@ newGroup color location =
 
 invert : StoneGroup -> StoneDict
 invert group =
-  Dict.fromList ( List.map (\x -> (x, group.color)) (Set.toList group.locations) )
+    Dict.fromList (List.map (\x -> ( x, group.color )) (Set.toList group.locations))
 
 
 toDict : List StoneGroup -> StoneDict
 toDict groups =
-  let
-      foldFunc group acc = Dict.union acc (invert group)
-  in
+    let
+        foldFunc group acc =
+            Dict.union acc (invert group)
+    in
     List.foldl foldFunc Dict.empty groups
 
 
 contains : StoneGroup -> Stone -> Coordinate -> Bool
 contains group color location =
-  (color == group.color) && (Set.member location group.locations)
+    (color == group.color) && Set.member location group.locations
 
 
 isNeighbor : StoneGroup -> Coordinate -> Bool
 isNeighbor group location =
-  Set.member location (neighbors group)
+    Set.member location (neighbors group)
 
 
 addStone : StoneGroup -> Stone -> Coordinate -> Result String StoneGroup
@@ -88,53 +89,67 @@ reverseDiff set2 set1 =
 
 shouldMerge : StoneGroup -> StoneGroup -> Bool
 shouldMerge group1 group2 =
-  let
-      commonStones = Set.intersect group1.locations group2.locations
-      sameColor = group1.color == group2.color
-  in
-      sameColor && not (Set.isEmpty commonStones)
+    let
+        commonStones =
+            Set.intersect group1.locations group2.locations
+
+        sameColor =
+            group1.color == group2.color
+    in
+    sameColor && not (Set.isEmpty commonStones)
 
 
 mergeGroups : StoneGroup -> StoneGroup -> StoneGroup
 mergeGroups group1 group2 =
-    {group1 | locations = Set.union group1.locations group2.locations}
+    { group1 | locations = Set.union group1.locations group2.locations }
 
 
 updateGroups : List StoneGroup -> Stone -> Coordinate -> List StoneGroup
 updateGroups stoneGroups color location =
-  let
-      newStoneGroup = newGroup color location
-      partitionFunc = (\group -> (isNeighbor group location) && group.color == color)
-      (unionGroups, noOpGroups) = List.partition partitionFunc stoneGroups
-      nGroups = List.length stoneGroups
-  in
+    let
+        newStoneGroup =
+            newGroup color location
+
+        partitionFunc =
+            \group -> isNeighbor group location && group.color == color
+
+        ( unionGroups, noOpGroups ) =
+            List.partition partitionFunc stoneGroups
+
+        nGroups =
+            List.length stoneGroups
+    in
     case nGroups == 0 of
-      True ->
-        List.singleton newStoneGroup
-      False ->
-        (List.foldl mergeGroups newStoneGroup unionGroups) :: noOpGroups
+        True ->
+            List.singleton newStoneGroup
+
+        False ->
+            List.foldl mergeGroups newStoneGroup unionGroups :: noOpGroups
 
 
 killGroups : List StoneGroup -> List StoneGroup
 killGroups groups =
-  let
-      boardState = toDict groups
-  in
-      List.filter (\group -> (libertyCount group boardState) > 0 ) groups
+    let
+        boardState =
+            toDict groups
+    in
+    List.filter (\group -> libertyCount group boardState > 0) groups
 
 
 libertyCount : StoneGroup -> StoneDict -> Int
 libertyCount group boardState =
-  let
-    mapfunc = \x -> (libertyToInt (StoneDict.isVacant boardState x))
-  in
+    let
+        mapfunc =
+            \x -> libertyToInt (StoneDict.isVacant boardState x)
+    in
     List.sum (List.map mapfunc (Set.toList (neighbors group)))
 
 
 libertyToInt : Bool -> Int
 libertyToInt liberty =
-  case liberty of
-    True ->
-      1
-    False ->
-      0
+    case liberty of
+        True ->
+            1
+
+        False ->
+            0
