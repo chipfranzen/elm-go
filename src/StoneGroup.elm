@@ -58,3 +58,24 @@ neighbors group =
 reverseDiff : Set comparable -> Set comparable -> Set comparable
 reverseDiff set2 set1 =
     Set.diff set1 set2
+
+
+shouldMerge : StoneGroup -> StoneGroup -> Bool
+shouldMerge group1 group2 =
+  let
+      commonStones = Set.intersect group1 group2
+      sameColor = group1.color == group2.color
+  in
+      sameColor && not (Set.isEmpty commonStones)
+
+
+mergeGroups StoneGroup -> StoneGroup -> Result String StoneGroup
+mergeGroups group1 group2 =
+  let
+      sameColor = group1.color == group2.color
+  in
+    case sameColor of
+      False ->
+        Err "Attempting to merge two groups of different colors."
+      True ->
+        Ok {group1 | locations = Set.union group1.locations group2.locations}
