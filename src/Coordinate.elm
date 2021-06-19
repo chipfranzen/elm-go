@@ -1,11 +1,23 @@
 module Coordinate exposing (..)
 
 import List
+import Set exposing (Set)
+import String
+import String.Interpolate
 import Tuple exposing (first, second)
 
 
 type alias Coordinate =
     ( Int, Int )
+
+
+toString : Coordinate -> String
+toString coord =
+    String.Interpolate.interpolate
+        "({0}, {1})"
+        [ String.fromInt (first coord)
+        , String.fromInt (second coord)
+        ]
 
 
 mul : Coordinate -> Int -> Coordinate
@@ -56,3 +68,20 @@ nearestCoord coords qcoord =
 
         Nothing ->
             qcoord
+
+
+neighbors : Coordinate -> Set Coordinate
+neighbors location =
+    let
+        transformations =
+            Set.fromList
+                [ ( -1, 0 )
+                , ( 0, -1 )
+                , ( 1, 0 )
+                , ( 0, 1 )
+                ]
+
+        mapfunc coord =
+            add coord location
+    in
+    Set.map mapfunc transformations

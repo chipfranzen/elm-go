@@ -285,8 +285,8 @@ onGoBan goBan pixel =
         && (py <= pMax)
 
 
-drawStone : Float -> GoBan -> ( Stone, Coordinate ) -> Html msg
-drawStone alpha goBan ( stone, gridCoord ) =
+drawStone : Float -> GoBan -> ( Coordinate, Stone ) -> Html msg
+drawStone alpha goBan ( gridCoord, stone ) =
     let
         pixel =
             gridCoordToPixel goBan gridCoord

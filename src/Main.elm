@@ -4,12 +4,15 @@ import BoardSize exposing (BoardSize)
 import Browser
 import Browser.Events as E
 import Coordinate exposing (Coordinate)
+import Dict exposing (Dict)
 import GoBan exposing (GoBan, draw, drawStone, newBoard, onGoBan, pixelToGridCoord)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Json.Decode as D
 import MousePos exposing (MousePos)
 import Stone exposing (Stone)
+import StoneDict exposing (StoneDict)
+import StoneGroup exposing (StoneGroup)
 import String
 import Svg exposing (Svg, svg)
 import Svg.Attributes exposing (height, viewBox, width)
@@ -54,7 +57,8 @@ main =
 
 type alias Model =
     { goBan : GoBan
-    , stones : List ( Stone, Coordinate )
+    , stones : StoneDict
+    , stoneGroups : List StoneGroup
     , turn : Stone
     , mousePos : Coordinate
     , error : String
@@ -64,7 +68,8 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { goBan = newBoard BoardSize.Nineteen goBanWidth viewBoxBuffer
-      , stones = []
+      , stones = Dict.empty
+      , stoneGroups = []
       , turn = Stone.Black
       , mousePos = ( 0, 0 )
       , error = ""
@@ -89,7 +94,9 @@ update msg model =
         ChangeBoard boardSize ->
             ( { model
                 | goBan = newBoard boardSize goBanWidth viewBoxBuffer
-                , stones = []
+                , stones = Dict.empty
+                , stoneGroups = []
+                , turn = Stone.Black
                 , error = ""
               }
             , Cmd.none
@@ -116,7 +123,7 @@ view model =
                 , height viewBoxSize
                 ]
                 (draw model.goBan
-                    ++ List.map (drawStone 1.0 model.goBan) model.stones
+                    ++ List.map (drawStone 1.0 model.goBan) (Dict.toList model.stones)
                     ++ drawGhostStone model
                 )
             , text model.error
@@ -163,23 +170,39 @@ placeStone model stoneCoord =
     in
     case legalMove of
         Legal ->
-            ( { model
-                | stones = ( model.turn, stoneCoord ) :: model.stones
-                , turn = Stone.next model.turn
-                , error = ""
-              }
-            , Cmd.none
-            )
+            updateStones model stoneCoord
 
         Illegal error ->
             ( { model | error = error }, Cmd.none )
+
+
+updateStones : Model -> Coordinate -> ( Model, Cmd Msg )
+updateStones model stoneCoord =
+    let
+        stoneGroups =
+            StoneGroup.updateGroups model.stoneGroups model.turn stoneCoord
+
+        liveGroups =
+            StoneGroup.killGroups stoneGroups
+
+        stones =
+            StoneGroup.toDict liveGroups
+    in
+    ( { model
+        | stones = stones
+        , stoneGroups = liveGroups
+        , turn = Stone.next model.turn
+        , error = ""
+      }
+    , Cmd.none
+    )
 
 
 isLegal : Model -> Coordinate -> MoveCheck
 isLegal model stoneCoord =
     let
         vacantCoord =
-            isVacant model.stones stoneCoord
+            StoneDict.isVacant model.stones stoneCoord
     in
     case vacantCoord of
         True ->
@@ -187,15 +210,6 @@ isLegal model stoneCoord =
 
         False ->
             Illegal "Coordinate occupied! Play somewhere else."
-
-
-isVacant : List ( Stone.Stone, Coordinate ) -> Coordinate -> Bool
-isVacant stones checkCoord =
-    let
-        sameStone stone =
-            Tuple.second stone == checkCoord
-    in
-    not (List.any sameStone stones)
 
 
 type MoveCheck
@@ -211,7 +225,7 @@ drawGhostStone model =
     in
     case onBan of
         True ->
-            [ drawStone 0.75 model.goBan ( model.turn, pixelToGridCoord model.goBan model.mousePos ) ]
+            [ drawStone 0.75 model.goBan ( pixelToGridCoord model.goBan model.mousePos, model.turn ) ]
 
         False ->
             []
