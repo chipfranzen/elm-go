@@ -42,13 +42,13 @@ contains group color location =
     (color == group.color) && Set.member location group.locations
 
 
-isNeighbor : StoneGroup -> Coordinate -> Bool
-isNeighbor group location =
-    Set.member location (neighbors group)
+isNeighbor : StoneGroup -> Coordinate -> Int -> Bool
+isNeighbor group location boardSize =
+    Set.member location (neighbors group boardSize)
 
 
-addStone : StoneGroup -> Stone -> Coordinate -> Result String StoneGroup
-addStone group color location =
+addStone : StoneGroup -> Stone -> Coordinate -> Int -> Result String StoneGroup
+addStone group color location boardSize =
     case group.color == color of
         False ->
             Err
@@ -58,7 +58,7 @@ addStone group color location =
                 )
 
         True ->
-            case Set.member location (neighbors group) of
+            case Set.member location (neighbors group boardSize) of
                 False ->
                     Err
                         (String.join " "
@@ -71,11 +71,11 @@ addStone group color location =
                     Ok { group | locations = Set.insert location group.locations }
 
 
-neighbors : StoneGroup -> Set Coordinate
-neighbors group =
+neighbors : StoneGroup -> Int -> Set Coordinate
+neighbors group boardSize =
     let
         foldFunc stoneLocation stoneGroup =
-            Coordinate.neighbors stoneLocation
+            Coordinate.neighbors stoneLocation boardSize
                 |> Set.union stoneGroup
     in
     Set.foldl foldFunc Set.empty group.locations
@@ -104,14 +104,14 @@ mergeGroups group1 group2 =
     { group1 | locations = Set.union group1.locations group2.locations }
 
 
-updateGroups : List StoneGroup -> Stone -> Coordinate -> List StoneGroup
-updateGroups stoneGroups color location =
+updateGroups : List StoneGroup -> Stone -> Coordinate -> Int -> List StoneGroup
+updateGroups stoneGroups color location boardSize =
     let
         newStoneGroup =
             newGroup color location
 
         partitionFunc =
-            \group -> isNeighbor group location && group.color == color
+            \group -> isNeighbor group location boardSize && group.color == color
 
         ( unionGroups, noOpGroups ) =
             List.partition partitionFunc stoneGroups
@@ -127,22 +127,22 @@ updateGroups stoneGroups color location =
             List.foldl mergeGroups newStoneGroup unionGroups :: noOpGroups
 
 
-killGroups : List StoneGroup -> List StoneGroup
-killGroups groups =
+killGroups : List StoneGroup -> Int -> List StoneGroup
+killGroups groups boardSize =
     let
         boardState =
             toDict groups
     in
-    List.filter (\group -> libertyCount group boardState > 0) groups
+    List.filter (\group -> libertyCount group boardState boardSize > 0) groups
 
 
-libertyCount : StoneGroup -> StoneDict -> Int
-libertyCount group boardState =
+libertyCount : StoneGroup -> StoneDict -> Int -> Int
+libertyCount group boardState boardSize =
     let
         mapfunc =
             \x -> libertyToInt (StoneDict.isVacant boardState x)
     in
-    List.sum (List.map mapfunc (Set.toList (neighbors group)))
+    List.sum (List.map mapfunc (Set.toList (neighbors group boardSize)))
 
 
 libertyToInt : Bool -> Int

@@ -70,8 +70,8 @@ nearestCoord coords qcoord =
             qcoord
 
 
-neighbors : Coordinate -> Set Coordinate
-neighbors location =
+neighbors : Coordinate -> Int -> Set Coordinate
+neighbors location boardSize =
     let
         transformations =
             Set.fromList
@@ -81,7 +81,18 @@ neighbors location =
                 , ( 0, 1 )
                 ]
 
-        mapfunc coord =
+        mapAdd coord =
             add coord location
+
+        filterOnBoard coord =
+            Tuple.first coord
+                >= 0
+                && Tuple.first coord
+                < boardSize
+                && Tuple.second coord
+                >= 0
+                && Tuple.second coord
+                < boardSize
     in
-    Set.map mapfunc transformations
+    Set.map mapAdd transformations
+        |> Set.filter filterOnBoard
