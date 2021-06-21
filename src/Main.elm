@@ -179,11 +179,14 @@ placeStone model stoneCoord =
 updateStones : Model -> Coordinate -> ( Model, Cmd Msg )
 updateStones model stoneCoord =
     let
+        boardSizeInt =
+            BoardSize.toInt model.goBan.boardSize
+
         stoneGroups =
-            StoneGroup.updateGroups model.stoneGroups model.turn stoneCoord
+            StoneGroup.updateGroups model.stoneGroups model.turn stoneCoord boardSizeInt
 
         liveGroups =
-            StoneGroup.killGroups stoneGroups
+            StoneGroup.killGroups stoneGroups boardSizeInt
 
         stones =
             StoneGroup.toDict liveGroups
